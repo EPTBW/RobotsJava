@@ -30,8 +30,8 @@ public class GameVisualizer extends JPanel
     private volatile int m_targetPositionX = 150;
     private volatile int m_targetPositionY = 100;
     
-    private static final double maxVelocity = 0.1; 
-    private static final double maxAngularVelocity = 0.001; 
+    private static final double maxVelocity = 0.2;
+    private static final double maxAngularVelocity = 0.005;
     
     public GameVisualizer() 
     {
@@ -99,16 +99,20 @@ public class GameVisualizer extends JPanel
         }
         double velocity = maxVelocity;
         double angleToTarget = angleTo(m_robotPositionX, m_robotPositionY, m_targetPositionX, m_targetPositionY);
+
+        double angleDifference = asNormalizedRadians(angleToTarget - m_robotDirection);
         double angularVelocity = 0;
-        if (angleToTarget > m_robotDirection)
+
+        double tolerance = 0.05;
+        if (angleDifference < tolerance || angleDifference > 2 * Math.PI - tolerance)
         {
+            angularVelocity = 0;
+        } else if (angleDifference < Math.PI) {
             angularVelocity = maxAngularVelocity;
-        }
-        if (angleToTarget < m_robotDirection)
-        {
+        } else {
             angularVelocity = -maxAngularVelocity;
         }
-        
+
         moveRobot(velocity, angularVelocity, 10);
     }
     
