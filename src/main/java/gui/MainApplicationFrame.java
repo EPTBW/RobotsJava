@@ -1,11 +1,10 @@
 package gui;
 
+import java.awt.*;
 import java.io.*;
 import java.util.Properties;
 import javax.swing.JOptionPane;
 import java.beans.PropertyVetoException;
-import java.awt.Dimension;
-import java.awt.Toolkit;
 import java.awt.event.KeyEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
@@ -196,12 +195,20 @@ private JMenu createApplicationMenu() {
 
     private void saveInternalFrameState(Properties props, String prefix, JInternalFrame frame) {
         if (frame != null) {
+            props.setProperty(prefix + ".max", String.valueOf(frame.isMaximum()));
             props.setProperty(prefix + ".visible", String.valueOf(frame.isVisible()));
             props.setProperty(prefix + ".icon", String.valueOf(frame.isIcon()));
-            props.setProperty(prefix + ".x", String.valueOf(frame.getX()));
-            props.setProperty(prefix + ".y", String.valueOf(frame.getY()));
-            props.setProperty(prefix + ".w", String.valueOf(frame.getWidth()));
-            props.setProperty(prefix + ".h", String.valueOf(frame.getHeight()));
+
+            Rectangle bounds;
+            if (frame instanceof BaseInternalFrame){
+                bounds = ((BaseInternalFrame) frame).getNormalBounds();
+            } else {
+                bounds = frame.getBounds();
+            }
+            props.setProperty(prefix + ".x", String.valueOf(bounds.x));
+            props.setProperty(prefix + ".y", String.valueOf(bounds.y));
+            props.setProperty(prefix + ".w", String.valueOf(bounds.width));
+            props.setProperty(prefix + ".h", String.valueOf(bounds.height));
         }
     }
 
@@ -237,7 +244,14 @@ private JMenu createApplicationMenu() {
                     Integer.parseInt(props.getProperty(prefix + ".h"))
             );
             frame.setVisible(Boolean.parseBoolean(props.getProperty(prefix + ".visible")));
-            frame.setIcon(Boolean.parseBoolean(props.getProperty(prefix + ".icon")));
+
+            boolean isMaximum = Boolean.parseBoolean(props.getProperty(prefix + ".max", "false"));
+
+            if (isMaximum) {
+                frame.setMaximum(true);
+            } else {
+                frame.setIcon(Boolean.parseBoolean(props.getProperty(prefix + ".icon")));
+            }
         }
     }
 }
