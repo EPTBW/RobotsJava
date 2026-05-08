@@ -116,7 +116,7 @@ public class GameVisualizer extends JPanel
         moveRobot(velocity, angularVelocity, 10);
     }
     
-    private static double applyLimits(double value, double min, double max)
+    static double applyLimits(double value, double min, double max)
     {
         if (value < min)
             return min;
