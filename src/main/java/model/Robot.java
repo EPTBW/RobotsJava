@@ -8,8 +8,16 @@ public class Robot {
     private double targetX;
     private double targetY;
 
+    private int lives = 3;
+    private final int maxLives = 3;
     private static final double MAX_VELOCITY = 0.2;
     private static final double MAX_ANGULAR_VELOCITY = 0.005;
+
+    private double dashTimeRemainig = 0;
+    private double dashCooldownRemainig = 0;
+    private static final double DASH_SPEED_MULTIPLIER = 4.0;
+    private static final double DASH_DURATION = 150;
+    private static final double DASH_COOLDOWN = 2000;
 
     public Robot(double startX, double startY) {
         this.x = startX;
@@ -22,6 +30,21 @@ public class Robot {
     public void setTarget(double x, double y) {
         this.targetX = x;
         this.targetY = y;
+    }
+
+    public void dash() {
+        if (dashCooldownRemainig <= 0) {
+            dashTimeRemainig = DASH_DURATION;
+            dashCooldownRemainig = DASH_COOLDOWN;
+        }
+    }
+
+    public void takeDamage() {
+        lives--;
+    }
+
+    public void resetLives() {
+        lives = maxLives;
     }
 
     public void update(double duration, double fieldWidth, double fieldHeight) {

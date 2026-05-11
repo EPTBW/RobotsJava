@@ -14,6 +14,7 @@ import java.util.TimerTask;
 import javax.swing.JPanel;
 import javax.swing.text.MaskFormatter;
 
+import model.Bullet;
 import model.GameModel;
 import model.Robot;
 import model.Apple;
@@ -65,27 +66,54 @@ public class GameVisualizer extends JPanel {
         Apple apple = model.getApple();
 
         drawRobot(graphics2D, (int) Math.round(robot.getX()), (int) Math.round(robot.getY()), robot.getDirection());
-        drawTarget(graphics2D, (int) Math.round(robot.getTargetX()), (int) Math.round(robot.getTargetX()));
+        drawTarget(graphics2D, (int) Math.round(robot.getTargetX()), (int) Math.round(robot.getTargetY()));
         drawApple(graphics2D, apple.getX(), apple.getY());
+
+        graphics2D.setColor(Color.BLACK);
+        for (Bullet b : model.getBullets()) {
+            fillOval(graphics, (int) Math.round(b.getX()), (int) Math.round(b.getY()), 8, 8);
+        }
 
         graphics2D.setColor(Color.YELLOW);
         graphics2D.drawString("Счет: " + model.getScore(), 10 , 20);
     }
 
     private void drawRobot(Graphics2D graphics2D, int x, int y, double direction) {
-        AffineTransform t = AffineTransform.getRotateInstance(direction, x, y);
-        graphics2D.setTransform(t);
+        AffineTransform oldTransform = graphics2D.getTransform();
+
+        graphics2D.rotate(direction, x ,y);
+
         graphics2D.setColor(Color.MAGENTA);
-        fillOval(graphics2D, x, y, 30, 10);
+        fillOval(graphics2D, x, y, 30 ,10);
         graphics2D.setColor(Color.BLACK);
-        drawOval(graphics2D, x, y, 30, 10);
+        fillOval(graphics2D, x, y, 30, 10);
         graphics2D.setColor(Color.WHITE);
         fillOval(graphics2D, x + 10, y, 5, 5);
         graphics2D.setColor(Color.BLACK);
         drawOval(graphics2D, x + 10, y, 5, 5);
+
+        graphics2D.setTransform(oldTransform);
+    }
+
+    private void drawTarget(Graphics2D g, int x, int y) {
+        g.setColor(Color.GREEN);
+        fillOval(g, x, y, 5, 5);
+        g.setColor(Color.BLACK);
+        drawOval(g, x, y, 5, 5);
+    }
+
+    private void drawApple(Graphics2D g, int x, int y) {
+        g.setColor(Color.RED);
+        fillOval(g, x, y, 10, 10);
+        g.setColor(Color.BLACK);
+        drawOval(g, x, y, 10, 10);
     }
     
-    private static void fillOval() {}
-    private static void drawOval() {}
+    private static void fillOval(Graphics graphics, int centerX, int centerY, int diam1, int diam2) {
+        graphics.fillOval(centerX - diam1 / 2, centerY - diam2 / 2, diam1, diam2);
+    }
+    private static void drawOval(Graphics graphics, int centerX, int centerY, int diam1, int diam2) {
+        graphics.drawOval(centerX - diam1 / 2, centerY - diam2 / 2, diam1, diam2);
+    }
 
 }
