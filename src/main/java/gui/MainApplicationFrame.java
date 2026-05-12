@@ -102,7 +102,7 @@ private JMenu createApplicationMenu() {
     {
         JMenuItem exitItem = new JMenuItem("Выход", KeyEvent.VK_X);
         exitItem.addActionListener((event) -> {
-            Toolkit.getDefaultToolkit().getSystemEventQueue().postEvent(    // Пункт Выйти имитирует крестик
+            Toolkit.getDefaultToolkit().getSystemEventQueue().postEvent(
                     new WindowEvent(this, WindowEvent.WINDOW_CLOSING));
         });
         menu.add(exitItem);
@@ -167,23 +167,23 @@ private JMenu createApplicationMenu() {
         catch (ClassNotFoundException | InstantiationException
             | IllegalAccessException | UnsupportedLookAndFeelException e)
         {
-            // just ignore
+
         }
     }
 
     private void saveProfile() {
         Properties props = new Properties();
 
-        // Состояние главного окна
+        // главное окно
         props.setProperty("main.x", String.valueOf(getX()));
         props.setProperty("main.y", String.valueOf(getY()));
         props.setProperty("main.w", String.valueOf(getWidth()));
         props.setProperty("main.h", String.valueOf(getHeight()));
         props.setProperty("main.state", String.valueOf(getExtendedState()));
 
-        // Состояние внутреннего окна лога
+        // внутреннее окно лога
         saveInternalFrameState(props, "log", logWindow);
-        // Состояние игрового окна
+        // игровое окно
         saveInternalFrameState(props, "game", gameWindow);
 
         try (OutputStream out = new FileOutputStream(profileFile)) {
@@ -217,7 +217,7 @@ private JMenu createApplicationMenu() {
         try (InputStream in = new FileInputStream(profileFile)) {
             props.load(in);
 
-            // Восстановление главного окна
+            // главное окно
             setBounds(
                     Integer.parseInt(props.getProperty("main.x")),
                     Integer.parseInt(props.getProperty("main.y")),
@@ -226,8 +226,9 @@ private JMenu createApplicationMenu() {
             );
             setExtendedState(Integer.parseInt(props.getProperty("main.state")));
 
-            // Восстановление внутренних окон
+            // внутреннее окно лога
             restoreInternalFrameState(props, "log", logWindow);
+            //игровое окно
             restoreInternalFrameState(props, "game", gameWindow);
 
         } catch (IOException | PropertyVetoException e) {
