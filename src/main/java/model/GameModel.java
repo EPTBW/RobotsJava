@@ -62,9 +62,15 @@ public class GameModel {
 
             double distToRobot = Math.sqrt(Math.pow(robot.getX() - b.getX(), 2) + Math.pow(robot.getY() - b.getY(), 2));
             if (distToRobot < 20) {
-                score = 0;
-                bullets.clear();
-                break;
+                iterator.remove();
+                robot.takeDamage();
+
+                if(robot.getLives() <= 0) {
+                    score = 0;
+                    robot.resetLives();;
+                    bullets.clear();
+                    break;
+                }
             }
         }
     }
@@ -94,6 +100,10 @@ public class GameModel {
         double vy = Math.sin(angleToRobot) * bulletSpeed;
 
         bullets.add(new Bullet(startX, startY, vx, vy));
+    }
+
+    public void triggerDash() {
+        robot.dash();
     }
 
     public Robot getRobot() {return robot;}

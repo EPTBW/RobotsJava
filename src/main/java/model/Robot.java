@@ -14,7 +14,7 @@ public class Robot {
     private static final double MAX_ANGULAR_VELOCITY = 0.005;
 
     private double dashTimeRemainig = 0;
-    private double dashCooldownRemainig = 0;
+    private double dashCooldownRemaining = 0;
     private static final double DASH_SPEED_MULTIPLIER = 4.0;
     private static final double DASH_DURATION = 150;
     private static final double DASH_COOLDOWN = 2000;
@@ -33,9 +33,9 @@ public class Robot {
     }
 
     public void dash() {
-        if (dashCooldownRemainig <= 0) {
+        if (dashCooldownRemaining <= 0) {
             dashTimeRemainig = DASH_DURATION;
-            dashCooldownRemainig = DASH_COOLDOWN;
+            dashCooldownRemaining = DASH_COOLDOWN;
         }
     }
 
@@ -48,6 +48,14 @@ public class Robot {
     }
 
     public void update(double duration, double fieldWidth, double fieldHeight) {
+        if (dashTimeRemainig > 0) {
+            dashTimeRemainig -=duration;
+        }
+
+        if (dashCooldownRemaining > 0) {
+            dashCooldownRemaining -= duration;
+        }
+
         double distance = distance(targetX, targetY, x ,y);
         if (distance < 0.5)
         {
@@ -67,7 +75,13 @@ public class Robot {
             angularVelocity = -MAX_ANGULAR_VELOCITY;
         }
 
-        move(MAX_VELOCITY, angularVelocity, duration, fieldWidth, fieldHeight);
+        double currentVelocity = MAX_VELOCITY;
+        if (dashTimeRemainig > 0) {
+            currentVelocity *= DASH_SPEED_MULTIPLIER;
+            angularVelocity = 0;
+        }
+
+        move(currentVelocity, angularVelocity, duration, fieldWidth, fieldHeight);
     }
 
     private void move(double velocity, double angularVelocity, double duration, double width, double height) {
@@ -110,5 +124,8 @@ public class Robot {
     public double getDirection() { return direction; }
     public double getTargetX() { return targetX; }
     public double getTargetY() { return targetY; }
+    public double getLives() {return lives;}
+    public double getDashCooldownRemaining() { return Math.max(0, dashCooldownRemaining);}
+    public double getDashCooldown() { return DASH_COOLDOWN; }
 }
 

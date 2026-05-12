@@ -4,15 +4,11 @@ import java.awt.Color;
 import java.awt.EventQueue;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
-import java.awt.event.ComponentAdapter;
-import java.awt.event.ComponentEvent;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
+import java.awt.event.*;
 import java.awt.geom.AffineTransform;
 import java.util.Timer;
 import java.util.TimerTask;
 import javax.swing.JPanel;
-import javax.swing.text.MaskFormatter;
 
 import model.Bullet;
 import model.GameModel;
@@ -40,10 +36,21 @@ public class GameVisualizer extends JPanel {
             }
         }, 0, 10);
 
+        // поменяли mouseClicked на mousePressed
         addMouseListener(new MouseAdapter() {
             @Override
-            public void mouseClicked(MouseEvent e) {
+            public void mousePressed(MouseEvent e) {
                 model.setTarget(e.getPoint().x, e.getPoint().y);
+            }
+        });
+
+        setFocusable(true);
+        addKeyListener(new java.awt.event.KeyAdapter() {
+            @Override
+            public void keyPressed(java.awt.event.KeyEvent e) {
+                if (e.getKeyCode() == KeyEvent.VK_SPACE) {
+                    model.triggerDash();
+                }
             }
         });
 
@@ -76,6 +83,17 @@ public class GameVisualizer extends JPanel {
 
         graphics2D.setColor(Color.YELLOW);
         graphics2D.drawString("Счет: " + model.getScore(), 10 , 20);
+
+        graphics2D.setColor(Color.RED);
+        graphics2D.drawString("Жизни: " + robot.getLives(), 10, 35);
+
+        graphics2D.setColor(Color.CYAN);
+        if (robot.getDashCooldownRemaining() > 0) {
+            int cooldownSec = (int) Math.ceil(robot.getDashCooldownRemaining() / 1000.0);
+            graphics2D.drawString("Рывок: " + cooldownSec + "с", 10 , 50);
+        } else {
+            graphics2D.drawString("Рывок: ГОТОВ (Пробел)", 10 , 50);
+        }
     }
 
     private void drawRobot(Graphics2D graphics2D, int x, int y, double direction) {
