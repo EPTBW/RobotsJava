@@ -74,4 +74,30 @@ public class RobotTest {
         double result = invokeApplyLimits(robot, 150, 0.0, 100.0);
         Assert.assertEquals("значение должно остаться 50", 100.0, result, 0.001);
     }
+
+    @Test
+    public void testDashSpeedAndCooldownLifecycle() {
+        Robot robot = new Robot(100, 100);
+        robot.setTarget(200, 100);
+
+        robot.update(10, 400, 400);
+        double normalDistance = robot.getX() - 100;
+
+        robot.dash();
+        double xBeforeDash = robot.getX();
+        robot.update(10, 400, 400);
+        double dashDistance = robot.getX() - xBeforeDash;
+
+        Assert.assertTrue("Расстояние за тик при рывке должно быть больше обычного", dashDistance > normalDistance);
+        Assert.assertTrue("Рывок должен уйти в кулдаун", robot.getDashCooldownRemaining() > 0);
+
+        robot.update(150, 400, 400);
+
+        double xAfterDashDuration = robot.getX();
+        robot.update(10, 400, 400);
+        double postDashDistance = robot.getX() - xAfterDashDuration;
+
+        Assert.assertEquals("Скорость должна вернуться к нормальной после окончания рывка",
+                normalDistance, postDashDistance, 0.001);
+    }
 }

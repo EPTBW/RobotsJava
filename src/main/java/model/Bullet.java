@@ -1,6 +1,8 @@
 package model;
 
-public class Bullet {
+import api.IBullet;
+
+public class Bullet implements IBullet {
     private double x;
     private double y;
 

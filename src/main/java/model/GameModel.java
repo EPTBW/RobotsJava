@@ -1,12 +1,17 @@
 package model;
 
+import api.IBullet;
+import api.IGameContext;
+import api.IRobotController;
+import api.IRobotPlugin;
+
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
 
 public class GameModel {
-    private final Robot robot;
+    private IRobotPlugin activeRobot;
     private Apple apple;
     private int score;
 
@@ -20,7 +25,7 @@ public class GameModel {
     public GameModel(int width, int height) {
         this.fieldHeight = height;
         this.fieldWidth = width;
-        this.robot = new Robot(100, 100);
+        this.activeRobot = null;
         this.apple = new Apple(width, height);
         this.score = 0;
     }
@@ -31,11 +36,41 @@ public class GameModel {
     }
 
     public void setTarget(double x, double y) {
-        robot.setTarget(x, y);
+        activeRobot.getController().setTarget(x, y);
     }
 
     public void update() {
-        robot.update(10, fieldWidth, fieldHeight);
+        if (activeRobot == null) return;
+
+        IGameContext context = new IGameContext() {
+            @Override
+            public int getAppleX() {
+                return apple.getX();
+            }
+
+            @Override
+            public int getAppleY() {
+                return apple.getY();
+            }
+
+            @Override
+            public List<IBullet> getBullets() {
+                return new ArrayList<>(bullets);
+            }
+
+            @Override
+            public int getFieldWidth() {
+                return fieldWidth;
+            }
+
+            @Override
+            public int getFieldHeight() {
+                return fieldHeight;
+            }
+        };
+
+        IRobotController robot = activeRobot.getController();
+        robot.update(10, context);
 
         double distToApple = Math.sqrt(Math.pow(robot.getX() - apple.getX(), 2) + Math.pow(robot.getY() - apple.getY(), 2));
 
@@ -65,15 +100,16 @@ public class GameModel {
                 iterator.remove();
                 robot.takeDamage();
 
-                if(robot.getLives() <= 0) {
+                if(robot.getHp() <= 0) {
                     score = 0;
-                    robot.resetLives();;
+                    robot.resetHp();;
                     bullets.clear();
                     break;
                 }
             }
         }
     }
+
 
     private void spawnBullet() {
         double startX = 0;
@@ -93,7 +129,7 @@ public class GameModel {
             startX = -10;
             startY = random.nextInt(fieldHeight);
         }
-        double angleToRobot = Math.atan2(robot.getY() - startY, robot.getX() - startX);
+        double angleToRobot = Math.atan2(activeRobot.getController().getY() - startY, activeRobot.getController().getX() - startX);
         double bulletSpeed = 0.15 + (score * 0.01);
 
         double vx = Math.cos(angleToRobot) * bulletSpeed;
@@ -103,11 +139,17 @@ public class GameModel {
     }
 
     public void triggerDash() {
-        robot.dash();
+        activeRobot.getController().dash();
     }
 
-    public Robot getRobot() {return robot;}
+
+    public void setActiveRobot(IRobotPlugin newPlugin) {
+        this.activeRobot = newPlugin;
+    }
+
+    public IRobotPlugin getActiveRobot() {return activeRobot;}
     public Apple getApple() {return apple;}
     public int getScore() {return score;}
     public List<Bullet> getBullets() {return  bullets;}
-}
+    }
+

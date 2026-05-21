@@ -8,10 +8,15 @@ import java.beans.PropertyVetoException;
 import java.awt.event.KeyEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import javax.swing.JFileChooser;
+import javax.swing.filechooser.FileNameExtensionFilter;
+import javax.swing.JOptionPane;
 
 import javax.swing.*;
 
+import api.IRobotPlugin;
 import log.Logger;
+import utils.PluginLoader;
 
 /**
  * Что требуется сделать:
@@ -116,7 +121,48 @@ private JMenu createApplicationMenu() {
         menuBar.add(createApplicationMenu());
         menuBar.add(createLookAndFeelMenu());
         menuBar.add(createTestMenu());
+        menuBar.add(createPluginMenu());
         return menuBar;
+    }
+
+    private JMenu createPluginMenu() {
+        JMenu pluginMenu = new JMenu("Плагины");
+        JMenuItem loadPluginItem = new JMenuItem("Загрузить робота");
+
+        loadPluginItem.addActionListener((event) ->{
+
+            String projectRobot = System.getProperty("user.dir");
+            File pluginsDir = new File(projectRobot, "plugins");
+
+            if (!pluginsDir.exists()) {
+                pluginsDir.mkdirs();
+            }
+
+            JFileChooser fileChooser = new JFileChooser(pluginsDir);
+            fileChooser.setDialogTitle("Выберите робота");
+
+            fileChooser.setFileFilter(new FileNameExtensionFilter("JAR files", "jar"));
+            int userSelection = fileChooser.showOpenDialog(this);
+
+            if (userSelection == JFileChooser.APPROVE_OPTION) {
+                File jarFile = fileChooser.getSelectedFile();
+                try {
+                    IRobotPlugin newPlugin = PluginLoader.loadPlugin(jarFile);
+                    gameWindow.setPlugin(newPlugin);
+
+                    JOptionPane.showMessageDialog(this,
+                            "Плагин успешно загружен: " + newPlugin.getName(),
+                            "Успех", JOptionPane.INFORMATION_MESSAGE);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    JOptionPane.showMessageDialog(this,
+                            "Ошибка загрузки плагина:\n" + e.getMessage(),
+                            "Ошибка", JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        });
+        pluginMenu.add(loadPluginItem);
+        return pluginMenu;
     }
 
     private JMenu createLookAndFeelMenu() {

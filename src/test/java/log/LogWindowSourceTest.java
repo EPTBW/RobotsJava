@@ -27,25 +27,21 @@ public class LogWindowSourceTest {
     public void testWeakReferenceMemoryLeak() throws Exception {
         LogWindowSource source = new LogWindowSource(10);
 
-        // 1. Создаем тестового слушателя
+        // Создаем тестового слушателя
         LogChangeListener listener = new LogChangeListener() {
             @Override
             public void onLogChanged() {}
         };
         source.registerListener(listener);
 
-        // убираем ссылку
         listener = null;
 
-        // Принудительно вызываем Сборщик мусора (Garbage Collector)
         System.gc();
         Thread.sleep(100); // Даем GC время на очистку
 
-        // Отправляем новое сообщение. В этот момент LogWindowSource
-        // должен попытаться уведомить слушателей, обнаружить "мертвую" ссылку и удалить её.
+        // Отправляем новое сообщение.
         source.append(LogLevel.Info, "Trigger update");
 
-        // Через Reflection API заглядываем в скрытые приватные поля класса
         Field listenersField = LogWindowSource.class.getDeclaredField("m_listeners");
         listenersField.setAccessible(true);
         List<?> internalList = (List<?>) listenersField.get(source);

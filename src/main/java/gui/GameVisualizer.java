@@ -5,14 +5,14 @@ import java.awt.EventQueue;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.event.*;
-import java.awt.geom.AffineTransform;
 import java.util.Timer;
 import java.util.TimerTask;
 import javax.swing.JPanel;
 
+import api.IRobotController;
+import api.IRobotPlugin;
 import model.Bullet;
 import model.GameModel;
-import model.Robot;
 import model.Apple;
 
 public class GameVisualizer extends JPanel {
@@ -69,12 +69,20 @@ public class GameVisualizer extends JPanel {
         super.paint(graphics);
         Graphics2D graphics2D = (Graphics2D) graphics;
 
-        Robot robot = model.getRobot();
         Apple apple = model.getApple();
+        IRobotPlugin plugin = model.getActiveRobot();
 
-        drawRobot(graphics2D, (int) Math.round(robot.getX()), (int) Math.round(robot.getY()), robot.getDirection());
-        drawTarget(graphics2D, (int) Math.round(robot.getTargetX()), (int) Math.round(robot.getTargetY()));
+        if (plugin == null) {
+            graphics2D.setColor(Color.RED);
+            graphics2D.drawString("Загрузите робота через меню 'Плагины'", 10, 20);
+            return;
+        }
+
         drawApple(graphics2D, apple.getX(), apple.getY());
+        IRobotController robot = plugin.getController();
+        plugin.getVisualizer().draw(graphics2D, plugin.getController());
+        drawTarget(graphics2D, (int) Math.round(robot.getTargetX()), (int) Math.round(robot.getTargetY()));
+        ;
 
         graphics2D.setColor(Color.BLACK);
         for (Bullet b : model.getBullets()) {
@@ -85,7 +93,7 @@ public class GameVisualizer extends JPanel {
         graphics2D.drawString("Счет: " + model.getScore(), 10 , 20);
 
         graphics2D.setColor(Color.RED);
-        graphics2D.drawString("Жизни: " + robot.getLives(), 10, 35);
+        graphics2D.drawString("Жизни: " + robot.getHp(), 10, 35);
 
         graphics2D.setColor(Color.CYAN);
         if (robot.getDashCooldownRemaining() > 0) {
@@ -96,21 +104,12 @@ public class GameVisualizer extends JPanel {
         }
     }
 
-    private void drawRobot(Graphics2D graphics2D, int x, int y, double direction) {
-        AffineTransform oldTransform = graphics2D.getTransform();
 
-        graphics2D.rotate(direction, x ,y);
-
-        graphics2D.setColor(Color.MAGENTA);
-        fillOval(graphics2D, x, y, 30 ,10);
-        graphics2D.setColor(Color.BLACK);
-        fillOval(graphics2D, x, y, 30, 10);
-        graphics2D.setColor(Color.WHITE);
-        fillOval(graphics2D, x + 10, y, 5, 5);
-        graphics2D.setColor(Color.BLACK);
-        drawOval(graphics2D, x + 10, y, 5, 5);
-
-        graphics2D.setTransform(oldTransform);
+    private void drawApple(Graphics2D g, int x, int y) {
+        g.setColor(Color.RED);
+        fillOval(g, x, y, 10, 10);
+        g.setColor(Color.BLACK);
+        drawOval(g, x, y, 10, 10);
     }
 
     private void drawTarget(Graphics2D g, int x, int y) {
@@ -120,13 +119,6 @@ public class GameVisualizer extends JPanel {
         drawOval(g, x, y, 5, 5);
     }
 
-    private void drawApple(Graphics2D g, int x, int y) {
-        g.setColor(Color.RED);
-        fillOval(g, x, y, 10, 10);
-        g.setColor(Color.BLACK);
-        drawOval(g, x, y, 10, 10);
-    }
-    
     private static void fillOval(Graphics graphics, int centerX, int centerY, int diam1, int diam2) {
         graphics.fillOval(centerX - diam1 / 2, centerY - diam2 / 2, diam1, diam2);
     }
@@ -134,4 +126,7 @@ public class GameVisualizer extends JPanel {
         graphics.drawOval(centerX - diam1 / 2, centerY - diam2 / 2, diam1, diam2);
     }
 
+    public void setActiveRobotPlugin(IRobotPlugin newPlugin) {
+        model.setActiveRobot(newPlugin);
+    }
 }
