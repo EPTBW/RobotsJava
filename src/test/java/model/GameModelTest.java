@@ -128,4 +128,68 @@ public class GameModelTest {
             Assert.assertTrue("Яблоко внутри поля по Y", apple.getY() >= 20 && apple.getY() <= 380);
         }
     }
+
+    @Test
+    public void testContextPreventsBulletTampering() throws Exception {
+        GameModel model = new GameModel(400, 400);
+
+        java.lang.reflect.Field timeField = GameModel.class.getDeclaredField("timeUntilNextBullet");
+        timeField.setAccessible(true);
+        timeField.set(model, 10000);
+
+        // Добавляем одну пулю
+        model.getBullets().add(new Bullet(10, 10, 0, 0));
+
+        IRobotController cheaterController = new MockRobotController() {
+            @Override
+            public void update(double duration, IGameContext context) {
+                try {
+                    context.getBullets().clear();
+                } catch (Exception e) {
+
+                }
+            }
+        };
+
+        model.setActiveRobot(new IRobotPlugin() {
+            @Override public String getName() { return "Cheater"; }
+            @Override public IRobotController getController() { return cheaterController; }
+            @Override public IRobotVisualizer getVisualizer() { return null; }
+        });
+
+        model.update();
+
+        Assert.assertEquals("Движок должен защищать свой список пуль от удаления плагином",
+                1, model.getBullets().size());
+    }
+
+    @Test
+    public void testContextProvidesAccurateData() {
+        GameModel model = new GameModel(800, 600);
+
+        final IGameContext[] capturedContext = new IGameContext[1];
+
+        IRobotController spyController = new MockRobotController() {
+            @Override
+            public void update(double duration, IGameContext context) {
+                capturedContext[0] = context;
+            }
+        };
+
+        model.setActiveRobot(new IRobotPlugin() {
+            @Override public String getName() { return "Spy"; }
+            @Override public IRobotController getController() { return spyController; }
+            @Override public IRobotVisualizer getVisualizer() { return null; }
+        });
+
+        model.update();
+
+        IGameContext ctx = capturedContext[0];
+        Assert.assertNotNull("Контекст должен быть передан роботу", ctx);
+
+        Assert.assertEquals("Контекст должен передавать точную ширину", 800, ctx.getFieldWidth());
+        Assert.assertEquals("Контекст должен передавать точную высоту", 600, ctx.getFieldHeight());
+        Assert.assertEquals("Контекст должен точно передавать X яблока", model.getApple().getX(), ctx.getAppleX());
+        Assert.assertEquals("Контекст должен точно передавать Y яблока", model.getApple().getY(), ctx.getAppleY());
+    }
 }

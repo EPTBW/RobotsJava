@@ -37,7 +37,7 @@ public class LogWindowSourceTest {
         listener = null;
 
         System.gc();
-        Thread.sleep(100); // Даем GC время на очистку
+        Thread.sleep(100);
 
         // Отправляем новое сообщение.
         source.append(LogLevel.Info, "Trigger update");
