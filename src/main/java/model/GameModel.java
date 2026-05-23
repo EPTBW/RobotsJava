@@ -1,13 +1,15 @@
 package model;
 
+import api.*;
+
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
 
 public class GameModel {
-    private final Robot robot;
-    private Apple apple;
+    private IRobotPlugin activeRobot;
+    private final List<CollectibleItem> collectibles = new ArrayList<>();
     private int score;
 
     private int fieldWidth;
@@ -20,9 +22,12 @@ public class GameModel {
     public GameModel(int width, int height) {
         this.fieldHeight = height;
         this.fieldWidth = width;
-        this.robot = new Robot(100, 100);
-        this.apple = new Apple(width, height);
+        this.activeRobot = null;
         this.score = 0;
+
+        collectibles.add(new CollectibleItem(ICollectible.Type.APPLE, width, height));
+        collectibles.add(new CollectibleItem(ICollectible.Type.BATTERY, width, height));
+        collectibles.add(new CollectibleItem(ICollectible.Type.MEDKIT, width, height));
     }
 
     public void setFieldSize(int width, int height) {
@@ -31,17 +36,55 @@ public class GameModel {
     }
 
     public void setTarget(double x, double y) {
-        robot.setTarget(x, y);
+        activeRobot.getController().setTarget(x, y);
     }
 
     public void update() {
-        robot.update(10, fieldWidth, fieldHeight);
+        if (activeRobot == null) return;
 
-        double distToApple = Math.sqrt(Math.pow(robot.getX() - apple.getX(), 2) + Math.pow(robot.getY() - apple.getY(), 2));
+        IGameContext context = new IGameContext() {
 
-        if (distToApple < 20) {
-            score++;
-            apple.relocate(fieldWidth, fieldHeight);
+            @Override
+            public List<ICollectible> getCollectibles() {
+                return new ArrayList<>(collectibles);
+            }
+
+            @Override
+            public List<IBullet> getBullets() {
+                return new ArrayList<>(bullets);
+            }
+
+            @Override
+            public int getFieldWidth() {
+                return fieldWidth;
+            }
+
+            @Override
+            public int getFieldHeight() {
+                return fieldHeight;
+            }
+        };
+
+        IRobotController robot = activeRobot.getController();
+        robot.update(10, context);
+
+        // Подбор предметов
+        for (CollectibleItem item : collectibles) {
+            double distToItem = Math.sqrt(Math.pow(robot.getX() - item.getX(), 2) + Math.pow(robot.getY() - item.getY(), 2));
+            if (distToItem < 20) {
+                switch (item.getType()) {
+                    case APPLE:
+                        score++;
+                        break;
+                    case BATTERY:
+                        robot.addEnergy(30);
+                        break;
+                    case MEDKIT:
+                        robot.heal();
+                        break;
+                }
+                item.relocate(fieldWidth, fieldHeight);
+            }
         }
 
         timeUntilNextBullet -= 10;
@@ -62,18 +105,26 @@ public class GameModel {
 
             double distToRobot = Math.sqrt(Math.pow(robot.getX() - b.getX(), 2) + Math.pow(robot.getY() - b.getY(), 2));
             if (distToRobot < 20) {
+                //отскок пули
+                if (robot.isShieldActive() && robot.getEnergy() > 0) {
+                    b.reflect();
+                    b.update(15);
+                    continue;
+                }
+
                 iterator.remove();
                 robot.takeDamage();
 
-                if(robot.getLives() <= 0) {
+                if(robot.getHp() <= 0) {
                     score = 0;
-                    robot.resetLives();;
+                    robot.resetHp();;
                     bullets.clear();
                     break;
                 }
             }
         }
     }
+
 
     private void spawnBullet() {
         double startX = 0;
@@ -93,7 +144,7 @@ public class GameModel {
             startX = -10;
             startY = random.nextInt(fieldHeight);
         }
-        double angleToRobot = Math.atan2(robot.getY() - startY, robot.getX() - startX);
+        double angleToRobot = Math.atan2(activeRobot.getController().getY() - startY, activeRobot.getController().getX() - startX);
         double bulletSpeed = 0.15 + (score * 0.01);
 
         double vx = Math.cos(angleToRobot) * bulletSpeed;
@@ -103,11 +154,17 @@ public class GameModel {
     }
 
     public void triggerDash() {
-        robot.dash();
+        activeRobot.getController().dash();
     }
 
-    public Robot getRobot() {return robot;}
-    public Apple getApple() {return apple;}
+
+    public void setActiveRobot(IRobotPlugin newPlugin) {
+        this.activeRobot = newPlugin;
+    }
+
+    public IRobotPlugin getActiveRobot() {return activeRobot;}
+    public List<CollectibleItem> getCollectibles() {return collectibles;}
     public int getScore() {return score;}
     public List<Bullet> getBullets() {return  bullets;}
-}
+    }
+

@@ -2,6 +2,7 @@ package gui;
 
 import java.awt.BorderLayout;
 import javax.swing.JPanel;
+import api.IRobotPlugin;
 
 public class GameWindow extends BaseInternalFrame
 {
@@ -14,5 +15,9 @@ public class GameWindow extends BaseInternalFrame
         panel.add(m_visualizer, BorderLayout.CENTER);
         getContentPane().add(panel);
         pack();
+    }
+
+    public void setPlugin(IRobotPlugin plugin) {
+        m_visualizer.setActiveRobotPlugin(plugin);
     }
 }

@@ -1,11 +1,13 @@
 package model;
 
-public class Bullet {
+import api.IBullet;
+
+public class Bullet implements IBullet {
     private double x;
     private double y;
 
-    private final double velocityX;
-    private final double velocityY;
+    private double velocityX;
+    private double velocityY;
 
     public Bullet(double startX, double startY, double VelX, double VelY) {
         this.x = startX;
@@ -17,6 +19,11 @@ public class Bullet {
     public void update(double duration) {
         this.x += velocityX * duration;
         this.y += velocityY * duration;
+    }
+
+    public void reflect() {
+        this.velocityX = -this.velocityX;
+        this.velocityY = -this.velocityY;
     }
 
     public double getX() {return x;}
