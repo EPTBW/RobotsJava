@@ -1,18 +1,20 @@
 package model;
 
 import api.IBullet;
+import api.ICollectible;
 import api.IGameContext;
 import api.IRobotController;
 import api.IRobotPlugin;
 import api.IRobotVisualizer;
 import org.junit.Assert;
 import org.junit.Test;
+
 import java.lang.reflect.Method;
 import java.util.List;
 
 public class GameModelTest {
 
-    // 1. Создаем поддельного робота-заглушку специально для тестов движка
+    // 1. Обновленный робот-заглушка с поддержкой новых контрактов
     private static class MockRobotController implements IRobotController {
         int hp = 3;
         @Override public void setTarget(double x, double y) {}
@@ -22,12 +24,23 @@ public class GameModelTest {
         @Override public double getDirection() { return 0; }
         @Override public double getTargetX() { return 100; }
         @Override public double getTargetY() { return 100; }
+
         @Override public void takeDamage() { hp--; }
+        @Override public void heal() { if (hp < 3) hp++; }
         @Override public void resetHp() { hp = 3; }
         @Override public int getHp() { return hp; }
+
         @Override public void dash() {}
         @Override public double getDashCooldownRemaining() { return 0; }
         @Override public double getDashCooldown() { return 2000; }
+
+        @Override public double getEnergy() { return 0; }
+        @Override public double getMaxEnergy() { return 100; }
+        @Override public void addEnergy(double amount) {}
+        @Override public boolean consumeEnergy(double amount) { return false; }
+
+        @Override public boolean isShieldActive() { return false; }
+        @Override public void toggleShield() {}
     }
 
     private static class MockRobotPlugin implements IRobotPlugin {
@@ -38,21 +51,47 @@ public class GameModelTest {
     }
 
     @Test
-    public void testAppleRelocation() {
-        Apple apple = new Apple(400, 400);
-        int initialX = apple.getX();
-        int initialY = apple.getY();
+    public void testCollectibleRelocationA() {
 
-        apple.relocate(400, 400);
+        CollectibleItem item = new CollectibleItem(ICollectible.Type.APPLE, 400, 400);
+        double initialX = item.getX();
+        double initialY = item.getY();
 
-        boolean isMoved = (initialX != apple.getX()) || (initialY != apple.getY());
-        Assert.assertTrue("Яблоко должно изменить координаты после relocate", isMoved);
+        item.relocate(400, 400);
+
+        boolean isMoved = (initialX != item.getX()) || (initialY != item.getY());
+        Assert.assertTrue("Предмет должен изменить координаты после relocate", isMoved);
+    }
+
+    @Test
+    public void testCollectibleRelocationB() {
+
+        CollectibleItem item = new CollectibleItem(ICollectible.Type.BATTERY, 400, 400);
+        double initialX = item.getX();
+        double initialY = item.getY();
+
+        item.relocate(400, 400);
+
+        boolean isMoved = (initialX != item.getX()) || (initialY != item.getY());
+        Assert.assertTrue("Предмет должен изменить координаты после relocate", isMoved);
+    }
+
+    @Test
+    public void testCollectibleRelocationM() {
+
+        CollectibleItem item = new CollectibleItem(ICollectible.Type.MEDKIT, 400, 400);
+        double initialX = item.getX();
+        double initialY = item.getY();
+
+        item.relocate(400, 400);
+
+        boolean isMoved = (initialX != item.getX()) || (initialY != item.getY());
+        Assert.assertTrue("Предмет должен изменить координаты после relocate", isMoved);
     }
 
     @Test
     public void testBulletSpawning() throws Exception {
         GameModel model = new GameModel(400, 400);
-        // Загружаем фейкового робота, чтобы пуле было в кого целиться
         model.setActiveRobot(new MockRobotPlugin());
 
         Assert.assertTrue("На старте игры пуль быть не должно", model.getBullets().isEmpty());
@@ -75,17 +114,13 @@ public class GameModelTest {
 
         IRobotController robot = model.getActiveRobot().getController();
 
-        // Пуля за границей поля
         model.getBullets().add(new Bullet(500, 100, 1 ,0));
         model.update();
         Assert.assertTrue("Пуля должна быть удалена", model.getBullets().isEmpty());
 
-        // Пуля летит рядом (робот на 100:100, пуля на 121:100 -> дистанция 21)
         model.getBullets().add(new Bullet(121, 100, 0, 0));
 
-
         int initialHp = robot.getHp();
-
         model.update();
 
         Assert.assertFalse("Пуля, пролетевшая рядом, не должна исчезнуть", model.getBullets().isEmpty());
@@ -110,7 +145,6 @@ public class GameModelTest {
         robot.takeDamage();
         Assert.assertEquals("У робота должно быть 1 ХП", 1, robot.getHp());
 
-        // Пуля летит точно в робота
         model.getBullets().add(new Bullet(100, 100, 0, 0));
         model.update();
 
@@ -120,12 +154,32 @@ public class GameModelTest {
     }
 
     @Test
-    public void testAppleSpawnBounds() {
-        Apple apple = new Apple(400, 400);
+    public void testCollectibleSpawnBoundsB() {
+        CollectibleItem item = new CollectibleItem(ICollectible.Type.BATTERY, 400, 400);
         for (int i = 0; i < 1000; i++) {
-            apple.relocate(400, 400);
-            Assert.assertTrue("Яблоко внутри поля по X", apple.getX() >= 20 && apple.getX() <= 380);
-            Assert.assertTrue("Яблоко внутри поля по Y", apple.getY() >= 20 && apple.getY() <= 380);
+            item.relocate(400, 400);
+            Assert.assertTrue("Предмет внутри поля по X", item.getX() >= 20 && item.getX() <= 380);
+            Assert.assertTrue("Предмет внутри поля по Y", item.getY() >= 20 && item.getY() <= 380);
+        }
+    }
+
+    @Test
+    public void testCollectibleSpawnBoundsA() {
+        CollectibleItem item = new CollectibleItem(ICollectible.Type.APPLE, 400, 400);
+        for (int i = 0; i < 1000; i++) {
+            item.relocate(400, 400);
+            Assert.assertTrue("Предмет внутри поля по X", item.getX() >= 20 && item.getX() <= 380);
+            Assert.assertTrue("Предмет внутри поля по Y", item.getY() >= 20 && item.getY() <= 380);
+        }
+    }
+
+    @Test
+    public void testCollectibleSpawnBoundsM() {
+        CollectibleItem item = new CollectibleItem(ICollectible.Type.MEDKIT, 400, 400);
+        for (int i = 0; i < 1000; i++) {
+            item.relocate(400, 400);
+            Assert.assertTrue("Предмет внутри поля по X", item.getX() >= 20 && item.getX() <= 380);
+            Assert.assertTrue("Предмет внутри поля по Y", item.getY() >= 20 && item.getY() <= 380);
         }
     }
 
@@ -137,7 +191,6 @@ public class GameModelTest {
         timeField.setAccessible(true);
         timeField.set(model, 10000);
 
-        // Добавляем одну пулю
         model.getBullets().add(new Bullet(10, 10, 0, 0));
 
         IRobotController cheaterController = new MockRobotController() {
@@ -159,7 +212,7 @@ public class GameModelTest {
 
         model.update();
 
-        Assert.assertEquals("Движок должен защищать свой список пуль от удаления плагином",
+        Assert.assertEquals("Пуля не должна быть удаленна",
                 1, model.getBullets().size());
     }
 
@@ -169,7 +222,7 @@ public class GameModelTest {
 
         final IGameContext[] capturedContext = new IGameContext[1];
 
-        IRobotController spyController = new MockRobotController() {
+        IRobotController Controller = new MockRobotController() {
             @Override
             public void update(double duration, IGameContext context) {
                 capturedContext[0] = context;
@@ -177,8 +230,8 @@ public class GameModelTest {
         };
 
         model.setActiveRobot(new IRobotPlugin() {
-            @Override public String getName() { return "Spy"; }
-            @Override public IRobotController getController() { return spyController; }
+            @Override public String getName() { return "robot"; }
+            @Override public IRobotController getController() { return Controller; }
             @Override public IRobotVisualizer getVisualizer() { return null; }
         });
 
@@ -189,7 +242,11 @@ public class GameModelTest {
 
         Assert.assertEquals("Контекст должен передавать точную ширину", 800, ctx.getFieldWidth());
         Assert.assertEquals("Контекст должен передавать точную высоту", 600, ctx.getFieldHeight());
-        Assert.assertEquals("Контекст должен точно передавать X яблока", model.getApple().getX(), ctx.getAppleX());
-        Assert.assertEquals("Контекст должен точно передавать Y яблока", model.getApple().getY(), ctx.getAppleY());
+
+        Assert.assertEquals("Контекст должен содержать то же количество предметов",
+                model.getCollectibles().size(), ctx.getCollectibles().size());
+
+        Assert.assertEquals("Контекст должен точно передавать X первого предмета",
+                model.getCollectibles().get(0).getX(), ctx.getCollectibles().get(0).getX(), 0.01);
     }
 }

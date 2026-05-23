@@ -12,8 +12,18 @@ public interface IRobotController {
 
     void takeDamage();
     void resetHp();
+    void heal();
     int getHp();
+
+    double getEnergy();
+    double getMaxEnergy();
+    void addEnergy(double amount);
+    boolean consumeEnergy(double amount);
+
     void dash();
     double getDashCooldownRemaining();
     double getDashCooldown();
+
+    boolean isShieldActive();
+    void toggleShield();
 }

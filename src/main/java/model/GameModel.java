@@ -1,9 +1,6 @@
 package model;
 
-import api.IBullet;
-import api.IGameContext;
-import api.IRobotController;
-import api.IRobotPlugin;
+import api.*;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -12,7 +9,7 @@ import java.util.Random;
 
 public class GameModel {
     private IRobotPlugin activeRobot;
-    private Apple apple;
+    private final List<CollectibleItem> collectibles = new ArrayList<>();
     private int score;
 
     private int fieldWidth;
@@ -26,8 +23,11 @@ public class GameModel {
         this.fieldHeight = height;
         this.fieldWidth = width;
         this.activeRobot = null;
-        this.apple = new Apple(width, height);
         this.score = 0;
+
+        collectibles.add(new CollectibleItem(ICollectible.Type.APPLE, width, height));
+        collectibles.add(new CollectibleItem(ICollectible.Type.BATTERY, width, height));
+        collectibles.add(new CollectibleItem(ICollectible.Type.MEDKIT, width, height));
     }
 
     public void setFieldSize(int width, int height) {
@@ -43,14 +43,10 @@ public class GameModel {
         if (activeRobot == null) return;
 
         IGameContext context = new IGameContext() {
-            @Override
-            public int getAppleX() {
-                return apple.getX();
-            }
 
             @Override
-            public int getAppleY() {
-                return apple.getY();
+            public List<ICollectible> getCollectibles() {
+                return new ArrayList<>(collectibles);
             }
 
             @Override
@@ -72,11 +68,23 @@ public class GameModel {
         IRobotController robot = activeRobot.getController();
         robot.update(10, context);
 
-        double distToApple = Math.sqrt(Math.pow(robot.getX() - apple.getX(), 2) + Math.pow(robot.getY() - apple.getY(), 2));
-
-        if (distToApple < 20) {
-            score++;
-            apple.relocate(fieldWidth, fieldHeight);
+        // Подбор предметов
+        for (CollectibleItem item : collectibles) {
+            double distToItem = Math.sqrt(Math.pow(robot.getX() - item.getX(), 2) + Math.pow(robot.getY() - item.getY(), 2));
+            if (distToItem < 20) {
+                switch (item.getType()) {
+                    case APPLE:
+                        score++;
+                        break;
+                    case BATTERY:
+                        robot.addEnergy(30);
+                        break;
+                    case MEDKIT:
+                        robot.heal();
+                        break;
+                }
+                item.relocate(fieldWidth, fieldHeight);
+            }
         }
 
         timeUntilNextBullet -= 10;
@@ -97,6 +105,13 @@ public class GameModel {
 
             double distToRobot = Math.sqrt(Math.pow(robot.getX() - b.getX(), 2) + Math.pow(robot.getY() - b.getY(), 2));
             if (distToRobot < 20) {
+                //отскок пули
+                if (robot.isShieldActive() && robot.getEnergy() > 0) {
+                    b.reflect();
+                    b.update(15);
+                    continue;
+                }
+
                 iterator.remove();
                 robot.takeDamage();
 
@@ -148,7 +163,7 @@ public class GameModel {
     }
 
     public IRobotPlugin getActiveRobot() {return activeRobot;}
-    public Apple getApple() {return apple;}
+    public List<CollectibleItem> getCollectibles() {return collectibles;}
     public int getScore() {return score;}
     public List<Bullet> getBullets() {return  bullets;}
     }

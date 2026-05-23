@@ -1,9 +1,6 @@
 package gui;
 
-import java.awt.Color;
-import java.awt.EventQueue;
-import java.awt.Graphics;
-import java.awt.Graphics2D;
+import java.awt.*;
 import java.awt.event.*;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -11,9 +8,8 @@ import javax.swing.JPanel;
 
 import api.IRobotController;
 import api.IRobotPlugin;
-import model.Bullet;
 import model.GameModel;
-import model.Apple;
+
 
 public class GameVisualizer extends JPanel {
     private final Timer m_timer = new Timer("events generaotor", true);
@@ -51,6 +47,10 @@ public class GameVisualizer extends JPanel {
                 if (e.getKeyCode() == KeyEvent.VK_SPACE) {
                     model.triggerDash();
                 }
+
+                if (e.getKeyCode() == KeyEvent.VK_SHIFT) {
+                    model.getActiveRobot().getController().toggleShield();
+                }
             }
         });
 
@@ -69,47 +69,136 @@ public class GameVisualizer extends JPanel {
         super.paint(graphics);
         Graphics2D graphics2D = (Graphics2D) graphics;
 
-        Apple apple = model.getApple();
+        graphics2D.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
         IRobotPlugin plugin = model.getActiveRobot();
 
         if (plugin == null) {
             graphics2D.setColor(Color.RED);
-            graphics2D.drawString("Загрузите робота через меню 'Плагины'", 10, 20);
+            graphics2D.setFont(new Font("Arial", Font.BOLD, 14));
+            graphics2D.drawString("Загрузите робота через меню 'Плагины'", 20, 35);
+
+            graphics2D.setColor(Color.BLACK);
+            graphics2D.drawString("Счет: " + model.getScore(), 20, 60);
             return;
         }
 
-        drawApple(graphics2D, apple.getX(), apple.getY());
+        for (api.ICollectible item : model.getCollectibles()) {
+            switch (item.getType()) {
+                case APPLE:
+                    drawApple(graphics2D, (int) item.getX(), (int) item.getY());
+                    break;
+                case BATTERY:
+                    drawBattery(graphics2D, (int) item.getX(), (int) item.getY());
+                    break;
+                case MEDKIT:
+                    drawMedkit(graphics2D, (int) item.getX(), (int) item.getY());
+                    break;
+            }
+        }
+
+        for (model.Bullet bullet : model.getBullets()) {
+            drawBullet(graphics2D, (int) Math.round(bullet.getX()), (int) Math.round(bullet.getY()));
+        }
+
+
+
         IRobotController robot = plugin.getController();
-        plugin.getVisualizer().draw(graphics2D, plugin.getController());
+
+        if (robot.isShieldActive() && robot.getEnergy() > 0) {
+            drawShield(graphics2D, (int) Math.round(robot.getX()), (int) Math.round(robot.getY()));
+        }
+
+        plugin.getVisualizer().draw(graphics2D, robot);
         drawTarget(graphics2D, (int) Math.round(robot.getTargetX()), (int) Math.round(robot.getTargetY()));
-        ;
 
-        graphics2D.setColor(Color.BLACK);
-        for (Bullet b : model.getBullets()) {
-            fillOval(graphics, (int) Math.round(b.getX()), (int) Math.round(b.getY()), 8, 8);
-        }
+        drawHUD(graphics2D, robot);
 
-        graphics2D.setColor(Color.YELLOW);
-        graphics2D.drawString("Счет: " + model.getScore(), 10 , 20);
-
-        graphics2D.setColor(Color.RED);
-        graphics2D.drawString("Жизни: " + robot.getHp(), 10, 35);
-
-        graphics2D.setColor(Color.CYAN);
-        if (robot.getDashCooldownRemaining() > 0) {
-            int cooldownSec = (int) Math.ceil(robot.getDashCooldownRemaining() / 1000.0);
-            graphics2D.drawString("Рывок: " + cooldownSec + "с", 10 , 50);
-        } else {
-            graphics2D.drawString("Рывок: ГОТОВ (Пробел)", 10 , 50);
-        }
     }
 
-
-    private void drawApple(Graphics2D g, int x, int y) {
-        g.setColor(Color.RED);
-        fillOval(g, x, y, 10, 10);
+    // Батарейка
+    private void drawBattery(Graphics2D g, int x, int y) {
+        g.setColor(Color.YELLOW);
+        g.fillRect(x - 8, y - 12, 16, 24);
+        g.setColor(Color.DARK_GRAY);
+        g.fillRect(x - 4, y - 15, 8, 3);
+        // Контур
         g.setColor(Color.BLACK);
-        drawOval(g, x, y, 10, 10);
+        g.drawRect(x - 8, y - 12, 16, 24);
+    }
+
+    // Аптечка
+    private void drawMedkit(Graphics2D g, int x, int y) {
+        g.setColor(Color.WHITE);
+        g.fillRoundRect(x - 12, y - 10, 24, 20, 6, 6);
+        g.setColor(Color.BLACK);
+        g.drawRoundRect(x - 12, y - 10, 24, 20, 6, 6);
+
+        // Красный крест
+        g.setColor(Color.RED);
+        g.fillRect(x - 2, y - 6, 4, 12);
+        g.fillRect(x - 6, y - 2, 12, 4);
+    }
+
+    // Щит
+    private void drawShield(Graphics2D g, int robotX, int robotY) {
+
+        Composite originalComposite = g.getComposite();
+
+        g.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.3f));
+
+        int radius = 28;
+        g.setColor(new Color(0, 191, 255));
+        g.fillOval(robotX - radius, robotY - radius, radius * 2, radius * 2);
+
+        // Контур
+        g.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.7f));
+        g.setStroke(new BasicStroke(2.0f));
+        g.drawOval(robotX - radius, robotY - radius, radius * 2, radius * 2);
+
+        g.setStroke(new BasicStroke(1.0f));
+        g.setComposite(originalComposite);
+    }
+
+    // HUD
+    private void drawHUD(Graphics2D g, api.IRobotController robot) {
+        g.setFont(new Font("Arial", Font.BOLD, 12));
+
+        g.setColor(Color.BLACK);
+        g.drawString("Счет: " + model.getScore(), 20, 25);
+
+        g.setColor(robot.getHp() > 1 ? new Color(0, 128, 0) : Color.RED);
+        g.drawString("Здоровье (HP): " + robot.getHp() + " / 3", 20, 45);
+
+        g.setColor(new Color(0, 102, 204));
+        g.drawString(String.format("Энергия: %.0f / %.0f", robot.getEnergy(), robot.getMaxEnergy()), 20, 65);
+
+        if (robot.isShieldActive()) {
+            g.setColor(new Color(0, 153, 76));
+            g.drawString("ЩИТ АКТИВЕН (-0.1 энг/тик)", 20, 85);
+        }
+
+        // Рывок
+        double dashCd = robot.getDashCooldownRemaining();
+        double dashMax = robot.getDashCooldown();
+
+
+        int baseY = robot.isShieldActive() ? 105 : 85;
+
+        if (dashCd <= 0) {
+            g.setColor(new Color(255, 140, 0));
+            g.drawString("Рывок (Пробел): ГОТОВ", 20, baseY);
+        } else {
+            g.setColor(Color.GRAY);
+            g.drawString(String.format("Рывок: перезарядка %.1f сек", dashCd / 1000.0), 20, baseY);
+
+            int barWidth = 100;
+            int filledWidth = (int) ((1.0 - (dashCd / dashMax)) * barWidth);
+
+            g.drawRect(20, baseY + 5, barWidth, 4); // Контур
+            g.setColor(Color.LIGHT_GRAY);
+            g.fillRect(21, baseY + 6, filledWidth, 3); // Заливка
+        }
     }
 
     private void drawTarget(Graphics2D g, int x, int y) {
@@ -117,6 +206,32 @@ public class GameVisualizer extends JPanel {
         fillOval(g, x, y, 5, 5);
         g.setColor(Color.BLACK);
         drawOval(g, x, y, 5, 5);
+    }
+
+    private void drawApple(Graphics2D g, int x, int y) {
+
+        g.setColor(new Color(220, 20, 60));
+        g.fillOval(x - 7, y - 7, 14, 14);
+
+        g.setColor(Color.BLACK);
+        g.drawOval(x - 7, y - 7, 14, 14);
+
+        g.setColor(new Color(139, 69, 19));
+        g.drawLine(x, y - 7, x + 2, y - 11);
+
+        g.setColor(new Color(34, 139, 34));
+        g.fillOval(x + 1, y - 12, 6, 4);
+    }
+
+    private void drawBullet(Graphics2D g, int x, int y) {
+        g.setColor(new Color(139, 0, 0));
+        g.fillOval(x - 4, y - 4, 8, 8);
+
+        g.setColor(Color.RED);
+        g.fillOval(x - 2, y - 2, 4, 4);
+
+        g.setColor(Color.YELLOW);
+        g.fillOval(x - 1, y - 1, 2, 2);
     }
 
     private static void fillOval(Graphics graphics, int centerX, int centerY, int diam1, int diam2) {
